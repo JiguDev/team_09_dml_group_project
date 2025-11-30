@@ -40,5 +40,5 @@ stages:
       size: 1042
     outs:
     - path: reports/evidently_report.html
-      md5: 7dbb9b5b9df9f0348cf6d9045fd30ca7
+      md5: b1c99a5d0d9d321a5f5385de203ae31e
       size: 4330238
