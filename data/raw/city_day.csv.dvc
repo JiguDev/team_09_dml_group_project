@@ -1,0 +1,4 @@
+outs:
+- md5: 4e241e96983482d9692f8a677403c1b3
+  size: 2574056
+  path: city_day.csv
