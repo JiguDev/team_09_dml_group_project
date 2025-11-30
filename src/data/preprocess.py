@@ -13,7 +13,7 @@ def load_raw(path=RAW):
 
 def standardize_column_names(df):
     df = df.copy()
-    df.columns = [c.strip() for c in df.columns]
+    df.columns = [c.strip().lower() for c in df.columns]
     return df
 
 def find_pollutant_columns(df):
@@ -122,22 +122,29 @@ def run():
     features = [col for col in ['PM2.5','PM10','NO2','SO2','CO','O3'] if col in df.columns]
     print("Using features:", features)
 
-    # optional: extract date features if any date column exists
-    date_col = None
-    for c in df.columns:
-        if 'date' in c.lower() or 'time' in c.lower():
-            date_col = c
-            break
-    if date_col:
-        df['__date__'] = pd.to_datetime(df[date_col], errors='coerce')
-        df['year'] = df['__date__'].dt.year
-        df['month'] = df['__date__'].dt.month
-        df['day'] = df['__date__'].dt.day
-        features += ['year','month','day']
+    # ---- FIXED DATE EXTRACTION ----
+    # detect "date" column after standardizing lowercase names
+    if "date" not in df.columns:
+        raise ValueError("Your dataset MUST contain a 'date' column (case-insensitive).")
 
-        df['weekday'] = df['__date__'].dt.weekday
-        df['season'] = df['month'] % 12 // 3
-        features += ['weekday', 'season']
+    # parse date safely
+    df["__date__"] = pd.to_datetime(df["date"], format="%Y-%m-%d", errors="coerce")
+
+    # drop rows with invalid dates
+    df = df.dropna(subset=["__date__"])
+
+    # ensure proper ordering for forecasting
+    df = df.sort_values("__date__")
+
+    # extract date parts
+    df["year"] = df["__date__"].dt.year
+    df["month"] = df["__date__"].dt.month
+    df["day"] = df["__date__"].dt.day
+    df["weekday"] = df["__date__"].dt.weekday
+    df["season"] = df["month"] % 12 // 3
+
+    # add them to features
+    features += ["year", "month", "day", "weekday", "season"]
 
     # handle City/State categorical columns (keep top N)
     for c in df.columns:
