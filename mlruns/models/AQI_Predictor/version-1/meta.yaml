@@ -1,0 +1,15 @@
+creation_timestamp: 1764509240428
+current_stage: None
+deployment_job_state: null
+description: ''
+last_updated_timestamp: 1764509240428
+model_id: m-5ec6a3b8891d4f36824c0dff614e9aef
+name: AQI_Predictor
+run_id: eed76e66212843c2b4fea9f99a602020
+run_link: ''
+source: models:/m-5ec6a3b8891d4f36824c0dff614e9aef
+status: READY
+status_message: null
+storage_location: mlflow-artifacts:/139694557214330258/models/m-5ec6a3b8891d4f36824c0dff614e9aef/artifacts
+user_id: null
+version: 1

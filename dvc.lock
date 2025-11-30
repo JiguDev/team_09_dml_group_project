@@ -1,0 +1,18 @@
+schema: '2.0'
+stages:
+  data_preparation:
+    cmd: python src/data_prep.py
+    deps:
+    - path: data/raw/city_day.csv
+      hash: md5
+      md5: 4e241e96983482d9692f8a677403c1b3
+      size: 2574056
+    - path: src/data_prep.py
+      hash: md5
+      md5: 335afbdc3bdd47fe0690e9d2f5fe70cc
+      size: 4382
+    outs:
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 9fac6c3b5b55c618b7254214e043c77a
+      size: 169177

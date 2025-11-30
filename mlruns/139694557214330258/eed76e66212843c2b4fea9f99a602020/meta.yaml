@@ -1,0 +1,14 @@
+artifact_uri: mlflow-artifacts:/139694557214330258/eed76e66212843c2b4fea9f99a602020/artifacts
+end_time: 1764509240563
+entry_point_name: ''
+experiment_id: '139694557214330258'
+lifecycle_stage: active
+run_id: eed76e66212843c2b4fea9f99a602020
+run_name: big-mare-806
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1764509228371
+status: 3
+tags: []
+user_id: burel

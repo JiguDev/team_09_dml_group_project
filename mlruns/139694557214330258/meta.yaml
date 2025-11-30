@@ -1,0 +1,6 @@
+artifact_location: mlflow-artifacts:/139694557214330258
+creation_time: 1764509227027
+experiment_id: '139694557214330258'
+last_update_time: 1764509227027
+lifecycle_stage: active
+name: Air Quality AQI Regression

@@ -1,0 +1,18 @@
+stages:
+  data_preparation:
+    cmd: python src/data_prep.py
+    deps:
+    - data/raw/city_day.csv
+    - src/data_prep.py
+    outs:
+    - data/processed/train.csv
+  train_model:
+    cmd: python src/train_model.py
+    deps:
+    - data/processed/train.csv
+    - src/train_model.py
+    params:
+    - model.learning_rate
+    - model.n_estimators
+    outs:
+    - models/model.pkl

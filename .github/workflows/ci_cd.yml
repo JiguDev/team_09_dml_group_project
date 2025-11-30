@@ -1,0 +1,56 @@
+name: CI/CD Pipeline - MLOps Project
+
+on:
+  push:
+    branches:
+      - main
+      - Kartik
+  pull_request:
+    branches:
+      - main
+      - Kartik
+
+jobs:
+  build_and_validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # --- Code Quality Check ---
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Linting Tools
+        run: pip install black flake8
+
+      - name: Run Code Linting (Example Test)
+        run: |
+          echo "Running Flake8 on source code..."
+          # Adjust the path to include your src/ directory
+          flake8 src/ service/ --max-line-length=100
+          
+      # --- Docker Containerization (Addressing Directory Structure) ---
+      - name: Build and Test Docker Image for FastAPI Service
+        run: |
+          echo "Starting Docker image build for deployment..."
+          # CRITICAL PATH FIX:
+          # 1. -t: Tag the image.
+          # 2. -f: Specify the path to the Dockerfile (within the service/ directory).
+          # 3. .: The build context is the root directory, allowing Docker to find
+          #    the 'service/' and 'models/' directories referenced in the Dockerfile.
+          docker build -t aqi-predictor-service:ci-test -f service/Dockerfile .
+          echo "Successfully built Docker image. CI/CD requirement met."
+          
+      - name: Run a Quick Container Check
+        run: |
+          docker run -d --name test_api -p 8000:8000 aqi-predictor-service:ci-test
+          sleep 5 # Give the container time to start
+          
+          curl http://localhost:8000/health
+          
+          docker stop test_api && docker rm test_api
+          echo "Container started and passed health check successfully."

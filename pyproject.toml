@@ -1,0 +1,15 @@
+[project]
+name = "team-09-dml-group-project"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "dvc>=3.64.0",
+    "evidently>=0.7.17",
+    "joblib>=1.5.2",
+    "mlflow>=3.6.0",
+    "pandas>=2.3.3",
+    "prefect>=3.6.4",
+    "scikit-learn>=1.7.2",
+]

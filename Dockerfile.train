@@ -1,0 +1,20 @@
+# Use a slim Python image
+FROM python:3.10-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install uv (and optionally other utilities)
+RUN pip install uv
+
+# Copy requirement files and install dependencies using uv
+COPY requirements.txt .
+RUN uv sync --no-cache
+
+# Copy the rest of the source code (src/, flows/, etc.)
+COPY . /app
+
+# The ENTRYPOINT can be set here if you intend to run the Prefect agent/flow 
+# directly upon container start, but for local execution, we typically run 
+# the Python script directly on the host or use a manual run command.
+# CMD ["uv", "run", "python", "flows/pipeline.py"]
