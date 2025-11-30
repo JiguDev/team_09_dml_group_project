@@ -17,7 +17,7 @@ prefect==2.10.13
 griffe==0.30.0              # required to avoid Prefect import errors
 
 # API Deployment
-fastapi==0.95.2
+fastapi==0.110.0
 uvicorn==0.22.0
 
 # Monitoring & Reports
