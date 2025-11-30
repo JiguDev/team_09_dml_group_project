@@ -1,0 +1,31 @@
+# --- GPU settings ---
+use_gpu: false            # CPU for now; change to true when using WSL GPU later
+gpu_backend: xgboost      # or 'lightgbm' (used only if use_gpu: true)
+
+
+# --- General parameters ---
+target_col: AQI_Bucket    # original bucket column in city_day.csv
+aqi_value_col: AQI        # numeric AQI column
+
+
+# --- Model hyperparameters ---
+model:
+
+  # CPU baseline model
+  rf:
+    n_estimators: 200
+    max_depth: 10
+    random_state: 42
+
+  # GPU model configuration (used only if use_gpu:true)
+  gbm:
+    n_estimators: 1000
+    learning_rate: 0.05
+    max_depth: -1
+    random_state: 42
+
+
+# --- Train/Test split ---
+train:
+  test_size: 0.2
+  random_state: 42

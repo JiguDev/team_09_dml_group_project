@@ -1,0 +1,24 @@
+stages:
+  preprocess:
+    cmd: python src/data/preprocess.py
+    deps:
+      - data/raw/city_day.csv
+      - src/data/preprocess.py
+    outs:
+      - data/processed/city_day_processed.csv
+  train:
+    cmd: python src/models/train.py
+    deps:
+      - data/processed/city_day_processed.csv
+      - src/models/train.py
+      - params.yaml
+    outs:
+      - model.joblib
+      - artifacts/classification_report.json
+  evidently:
+    cmd: python src/monitoring/evidently_report.py
+    deps:
+      - data/processed/city_day_processed.csv
+      - src/monitoring/evidently_report.py
+    outs:
+      - reports/evidently_report.html
