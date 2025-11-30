@@ -1,6 +1,10 @@
 # tests/test_api.py
-import requests
+from fastapi.testclient import TestClient
+from src.api.app import app
+
+client = TestClient(app)
+
 def test_health():
-    r = requests.get("http://localhost:8000/health")
-    assert r.status_code == 200
-    assert r.json().get("status") == "ok"
+    res = client.get("/health")
+    assert res.status_code == 200
+    assert res.json().get("status") == "ok"

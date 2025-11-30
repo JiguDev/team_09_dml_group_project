@@ -1,90 +1,48 @@
-name: MLOps CI/CD Pipeline
+name: MLOps CI Pipeline
 
 on:
   push:
     branches:
-      - main
       - jigyasu-mlops
   pull_request:
     branches:
       - main
 
 jobs:
-  build-test-deploy:
+  build-test:
     runs-on: ubuntu-latest
 
     steps:
-
-      # -------------------------
-      # 1. CHECKOUT CODE
-      # -------------------------
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # -------------------------
-      # 2. PYTHON SETUP
-      # -------------------------
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
 
-      # -------------------------
-      # 3. INSTALL DEPENDENCIES
-      # -------------------------
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install dvc
 
-      # -------------------------
-      # 4. DVC PULL (OPTIONAL)
-      # -------------------------
-      - name: Setup DVC
+      - name: Setup DVC (no remote)
         run: |
           dvc config core.no_scm true
-          dvc pull || echo "Skipping – no DVC remote configured"
+          dvc pull || echo "Skipping DVC pull"
 
-      # -------------------------
-      # 5. RUN PREPROCESSING
-      # -------------------------
       - name: Run preprocessing
         run: python src/data/preprocess.py
 
-      # -------------------------
-      # 6. TRAIN MODEL
-      # -------------------------
       - name: Train model
         run: python src/models/train.py
 
-      # -------------------------
-      # 7. RUN TESTS
-      # -------------------------
-      - name: Run Tests
+      - name: Run Unit Tests
         run: pytest -q
 
-      # -------------------------
-      # 8. BUILD DOCKER IMAGE
-      # -------------------------
-      - name: Build Docker Image
-        run: docker build -t aqi-app .
-
-      # -------------------------
-      # 9. DOCKER SMOKE TEST
-      # -------------------------
-      - name: Test FastAPI Service
-        run: |
-          docker run -d -p 8000:8000 --name api-test aqi-app
-          sleep 8
-          curl http://localhost:8000/health
-          docker stop api-test
-
-      # -------------------------
-      # 10. UPLOAD MODEL ARTIFACT
-      # -------------------------
       - name: Upload model artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: trained-model
           path: model.joblib
