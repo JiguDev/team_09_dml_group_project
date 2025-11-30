@@ -49,30 +49,6 @@ def generate_monitoring():
     return "monitoring_report.html"
 
 # -------------------------------
-# TASK 5: DVC Add + Git commit
-# -------------------------------
-@task
-def dvc_track():
-    print(" Tracking artifacts using DVC...")
-    files = [
-        "model.joblib",
-        "data/processed/city_day_processed.csv",
-        "artifacts/classification_report.json"
-    ]
-
-    for f in files:
-        if os.path.exists(f):
-            run_cmd(["dvc", "add", f])
-        else:
-            print(f"⚠ WARNING: {f} does not exist, skipping!")
-
-    # Git commit
-    run_cmd(["git", "add", "."])
-    run_cmd(["git", "commit", "-m", f"Pipeline auto commit {datetime.now()}"])
-
-    return True
-
-# -------------------------------
 # MAIN PIPELINE
 # -------------------------------
 @flow(name="AQI Full MLOps Pipeline")
@@ -83,13 +59,11 @@ def pipeline():
     processed = preprocess()
     model = train()
     report = generate_monitoring()
-    dvc_status = dvc_track()
 
     print(" Pipeline Completed Successfully!")
     print(f"Processed file: {processed}")
     print(f"Model file: {model}")
     print(f"Evidently report: {report}")
-    print(f"DVC tracking: {dvc_status}")
 
 if __name__ == "__main__":
     pipeline()
