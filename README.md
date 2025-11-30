@@ -170,7 +170,7 @@ deactivate
 
 ```sh
 pip install --upgrade pip # if this do not works, try this:
-~\.venv\Scripts\python.exe -m pip install --upgrade pip #~means your path to directory
+D:\MTech\DML\india-aqi-mlops\.venv\Scripts\python.exe -m pip install --upgrade pip # Replace with your path
 pip install -r requirements.txt
 ```
 ---
