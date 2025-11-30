@@ -1,0 +1,44 @@
+schema: '2.0'
+stages:
+  preprocess:
+    cmd: python src/data/preprocess.py
+    deps:
+    - path: data/raw/city_day.csv
+      md5: 4e241e96983482d9692f8a677403c1b3
+      size: 2574056
+    - path: src/data/preprocess.py
+      md5: ba35ef93bb374d3536237edd1cb6d72b
+      size: 5610
+    outs:
+    - path: data/processed/city_day_processed.csv
+      md5: 1083136a02b343fa623f5e9baa05fb51
+      size: 2581866
+  train:
+    cmd: python src/models/train.py
+    deps:
+    - path: data/processed/city_day_processed.csv
+      md5: 1083136a02b343fa623f5e9baa05fb51
+      size: 2581866
+    - path: src/models/train.py
+      md5: d62cc4d396d27dd6ed117c5f272f3df1
+      size: 15231
+    outs:
+    - path: artifacts/classification_report.json
+      md5: a393c40663a3df5ddae9248cd9ecce7d
+      size: 1229
+    - path: model.joblib
+      md5: 87add5a8418e7a062b07b74d1a79e59c
+      size: 18691432
+  evidently:
+    cmd: python src/monitoring/evidently_report.py
+    deps:
+    - path: data/processed/city_day_processed.csv
+      md5: 1083136a02b343fa623f5e9baa05fb51
+      size: 2581866
+    - path: src/monitoring/evidently_report.py
+      md5: 2cf33ccfe44f99ddba700be3cb0ec05e
+      size: 1042
+    outs:
+    - path: reports/evidently_report.html
+      md5: 7dbb9b5b9df9f0348cf6d9045fd30ca7
+      size: 4330238
