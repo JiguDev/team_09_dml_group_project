@@ -1,10 +1,10 @@
 # tests/test_api.py
-from starlette.testclient import TestClient
+from fastapi.testclient import TestClient
 from src.api.app import app
 
-client = TestClient(app)
+client = TestClient(app=app)
 
 def test_health():
-    response = client.get("/health")
-    assert response.status_code == 200
-    assert response.json()["status"] == "ok"
+    res = client.get("/health")
+    assert res.status_code == 200
+    assert res.json()["status"] == "ok"
