@@ -1,5 +1,5 @@
 # tests/test_api.py
-from fastapi.testclient import TestClient
+from starlette.testclient import TestClient
 from src.api.app import app
 
 client = TestClient(app)

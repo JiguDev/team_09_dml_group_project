@@ -38,14 +38,14 @@ jobs:
       - name: Train model
         run: python src/models/train.py
 
-      - name: Skip Tests (Temporary)
-        run: echo "Skipping pytest in CI to avoid FastAPI loading issues"
+      - name: Train Forecast model
+        run: python src/models/forecast.py
 
-      # - name: Add project root to PYTHONPATH
-      #   run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
+      - name: Add project root to PYTHONPATH
+        run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
 
-      # - name: Run Unit Tests
-      #   run: pytest -q
+      - name: Run Unit Tests
+        run: pytest -q
 
       - name: Upload model artifact
         uses: actions/upload-artifact@v4
