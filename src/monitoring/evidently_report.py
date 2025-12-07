@@ -1,49 +1,60 @@
 # src/monitoring/evidently_report.py
-import pandas as pd
+
 import os
+import pandas as pd
 from evidently.report import Report
 from evidently.metric_preset import DataDriftPreset
-from evidently import ColumnMapping
 
-PROCESSED = "data/processed/city_day_processed.csv"
-OUT_HTML = "reports/evidently_report.html"
+# Update this if your processed file has a different name
+PROCESSED_CSV = "data/processed/city_day_processed.csv"
+DEFAULT_REPORT_HTML = "reports/aqi_drift_report.html"
 
-def run_report():
-    if not os.path.exists(PROCESSED):
-        raise FileNotFoundError(
-            f"Processed data missing: {PROCESSED}. Run preprocess first."
-        )
 
-    df = pd.read_csv(PROCESSED)
+def generate_drift_report(
+    processed_csv: str = PROCESSED_CSV,
+    output_html: str = DEFAULT_REPORT_HTML,
+) -> str:
+    """
+    Generate an Evidently data drift report by splitting the processed dataset
+    into reference and current chunks.
 
-    # -------- Reference vs Current Split --------
-    # Use 70/30 split to avoid empty samples
-    ref = df.sample(frac=0.7, random_state=42)
-    cur = df.drop(ref.index)
+    - Loads the processed CSV.
+    - Sorts by Date (if present) or by index.
+    - Uses first 70% as reference_data and last 30% as current_data.
+    - Runs Evidently DataDriftPreset.
+    - Saves HTML report to output_html.
+    - Returns output_html path.
+    """
 
-    # -------- Column Mapping --------
-    mapping = ColumnMapping()
-    if "AQI_Bucket_label" in df.columns:
-        mapping.target = "AQI_Bucket_label"
-    elif "AQI_Bucket" in df.columns:
-        mapping.target = "AQI_Bucket"
+    df = pd.read_csv(processed_csv)
+
+    if df.shape[0] < 10:
+        raise ValueError("Not enough rows in processed data to compute drift report.")
+
+    # If Date column exists, sort by it; else use index
+    if "Date" in df.columns:
+        df["Date"] = pd.to_datetime(df["Date"])
+        df = df.sort_values("Date")
     else:
-        mapping.target = None  # safe fallback
+        df = df.sort_index()
 
-    # -------- Generate Report --------
+    n_rows = len(df)
+    split_idx = int(n_rows * 0.7)
+
+    reference = df.iloc[:split_idx].reset_index(drop=True)
+    current = df.iloc[split_idx:].reset_index(drop=True)
+
+    out_dir = os.path.dirname(output_html)
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
+
     report = Report(metrics=[DataDriftPreset()])
-    report.run(
-        reference_data=ref,
-        current_data=cur,
-        column_mapping=mapping
-    )
+    report.run(reference_data=reference, current_data=current)
+    report.save_html(output_html)
 
-    # -------- Save Output --------
-    os.makedirs(os.path.dirname(OUT_HTML), exist_ok=True)
-    report.save_html(OUT_HTML)
-
-    print(f"✔ Evidently report saved to {OUT_HTML}")
+    return output_html
 
 
 if __name__ == "__main__":
-    run_report()
+    path = generate_drift_report()
+    print(f"[Monitoring] Data drift report generated → {path}")
