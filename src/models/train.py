@@ -101,7 +101,7 @@ def rf_random_search(X, y, params, cv_splits=3, n_iter=25, seed=42):
 
 def train_lightgbm(X_train, y_train, X_val, y_val, params, use_gpu=False, seed=42):
     import lightgbm as lgb
-    gbm_p = params['model']['gbm'].copy()
+    gbm_p = params.get('model', {}).get('gbm', {}).copy()
     # align defaults with params
     n_estimators = gbm_p.pop('n_estimators', 1000)
     num_class = int(np.unique(y_train).shape[0])
@@ -133,7 +133,7 @@ def train_lightgbm(X_train, y_train, X_val, y_val, params, use_gpu=False, seed=4
 
 def train_xgboost(X_train, y_train, X_val, y_val, params, use_gpu=False, seed=42):
     import xgboost as xgb
-    gbm_p = params['model']['gbm'].copy()
+    gbm_p = params.get('model', {}).get('gbm', {}).copy()
     n_estimators = gbm_p.pop('n_estimators', 1000)
     num_class = int(np.unique(y_train).shape[0])
 

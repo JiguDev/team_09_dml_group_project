@@ -1,5 +1,5 @@
 # --- GPU settings ---
-use_gpu: false            # CPU for now; change to true when using WSL GPU later
+use_gpu: false            # CPU for now; change to true when you want to use GPU
 gpu_backend: xgboost      # or 'lightgbm' (used only if use_gpu: true)
 
 

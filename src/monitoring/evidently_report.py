@@ -57,4 +57,4 @@ def generate_drift_report(
 
 if __name__ == "__main__":
     path = generate_drift_report()
-    print(f"[Monitoring] Data drift report generated → {path}")
+    print(f"[Monitoring] Data drift report generated -> {path}")

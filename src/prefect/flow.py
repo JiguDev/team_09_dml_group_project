@@ -1,4 +1,5 @@
 # src/prefect/flow.py
+
 from prefect import flow, task
 import subprocess, sys, os
 from datetime import datetime
@@ -17,9 +18,25 @@ def run_cmd(cmd: list):
 # -------------------------------
 @task
 def dvc_pull():
-    print(" Pulling latest data from DVC...")
-    run_cmd(["dvc", "pull"])
-    return True
+    """
+    Best-effort DVC pull.
+
+    - If raw CSV already exists locally, we skip 'dvc pull' entirely.
+    - If it's missing, we try 'dvc pull' once. On failure, we log a warning
+      and continue; user is expected to place raw data manually.
+    """
+    print(" Pulling latest data from DVC (optional)...")
+
+    raw_path = os.path.join("data", "raw", "city_day.csv")
+
+    if os.path.exists(raw_path):
+        print(f" [INFO] Raw data already present at {raw_path}. Skipping 'dvc pull'.")
+        return
+
+    try:
+        run_cmd(["dvc", "pull"])
+    except RuntimeError as e:
+        print(f"[WARN] DVC pull failed ({e}). Continuing with existing local data.")
 
 # -------------------------------
 # TASK 2: Preprocessing
@@ -45,8 +62,8 @@ def train():
 @task
 def generate_monitoring():
     print(" Generating Evidently report...")
-    run_cmd([sys.executable, "src/monitoring/evidently_report.py"])
-    return "monitoring_report.html"
+    run_cmd([sys.executable, "-m", "src.monitoring.evidently_report"])
+    return "reports/aqi_drift_report.html"
 
 # -------------------------------
 # MAIN PIPELINE

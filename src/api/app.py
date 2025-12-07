@@ -130,7 +130,7 @@ def aqi_to_bucket(aqi):
     return "Severe"
 
 # -----------------------------
-# FORECAST Endpoint
+# FORECAST Endpoint (simple horizon forecast)
 # -----------------------------
 @app.get("/forecast")
 def forecast(days: int = 7):
@@ -140,28 +140,35 @@ def forecast(days: int = 7):
     if days < 1 or days > 30:
         raise HTTPException(status_code=400, detail="days must be between 1 and 30")
 
+    # Load processed data once for fallback
+    df = pd.read_csv("data/processed/city_day_processed.csv")
+
     try:
+        # Primary: ARIMA forecast
         result = model_forecaster.forecast(steps=days)
         values = [float(v) for v in result]
-        buckets = [aqi_to_bucket(v) for v in values]
-
-        return {
-            "requested_days": days,
-            "forecast_values": values,
-            "forecast_buckets": buckets
-        }
-
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        # Fallback: repeat last observed AQI
+        print(f"[WARN] ARIMA forecast failed in /forecast ({e}), using naive last-value forecast.")
+        last_aqi = float(df["AQI"].dropna().iloc[-1])
+        values = [last_aqi for _ in range(days)]
+
+    buckets = [aqi_to_bucket(v) for v in values]
+
+    return {
+        "requested_days": days,
+        "forecast_values": values,
+        "forecast_buckets": buckets,
+    }
 
 # ===== Required feature order from processed dataset =====
 REQUIRED_FEATURE_ORDER = [
-    "PM2.5","PM10","NO2","SO2","CO","O3",
-    "year","month","day","weekday","season",
-    "City_Amaravati","City_Amritsar","City_Bengaluru","City_Chennai",
-    "City_Delhi","City_Gurugram","City_Hyderabad","City_Jaipur",
-    "City_Jorapokhar","City_Lucknow","City_Mumbai","City_Other",
-    "City_Patna","City_Thiruvananthapuram","City_Visakhapatnam"
+    "PM2.5", "PM10", "NO2", "SO2", "CO", "O3",
+    "year", "month", "day", "weekday", "season",
+    "city_Amaravati", "city_Amritsar", "city_Bengaluru", "city_Chennai",
+    "city_Delhi", "city_Gurugram", "city_Hyderabad", "city_Jaipur",
+    "city_Jorapokhar", "city_Lucknow", "city_Mumbai", "city_Other",
+    "city_Patna", "city_Thiruvananthapuram", "city_Visakhapatnam",
 ]
 
 # API → model column rename mapping
@@ -176,33 +183,44 @@ RENAME_MAP = {
 def predict(input_data: AQIInput):
     if model_classifier is None:
         raise HTTPException(status_code=500, detail="Model not loaded")
-
     try:
         data = input_data.dict()
 
+        # Map API field names -> model feature names
         rename_map = {
-            "PM2_5": "PM2.5"
+            "PM2_5": "PM2.5",
+            "City_Amaravati": "city_Amaravati",
+            "City_Amritsar": "city_Amritsar",
+            "City_Bengaluru": "city_Bengaluru",
+            "City_Chennai": "city_Chennai",
+            "City_Delhi": "city_Delhi",
+            "City_Gurugram": "city_Gurugram",
+            "City_Hyderabad": "city_Hyderabad",
+            "City_Jaipur": "city_Jaipur",
+            "City_Jorapokhar": "city_Jorapokhar",
+            "City_Lucknow": "city_Lucknow",
+            "City_Mumbai": "city_Mumbai",
+            "City_Other": "city_Other",
+            "City_Patna": "city_Patna",
+            "City_Thiruvananthapuram": "city_Thiruvananthapuram",
+            "City_Visakhapatnam": "city_Visakhapatnam",
         }
+        
         for old, new in rename_map.items():
+            # all fields are present in the Pydantic model, so .pop is safe
             data[new] = data.pop(old)
-
         df = pd.DataFrame([data])
-
         for col in REQUIRED_FEATURE_ORDER:
             if col not in df.columns:
                 df[col] = 0
-
         df = df[REQUIRED_FEATURE_ORDER]
-
         pred = model_classifier.predict(df)[0]
         proba = model_classifier.predict_proba(df)[0].tolist() if hasattr(model_classifier, "predict_proba") else None
-
         return {
             "predicted_label": int(pred),
             "predicted_bucket": AQI_BUCKET_MAP.get(int(pred), "Unknown"),
-            "probabilities": proba
+            "probabilities": proba,
         }
-
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     
@@ -237,81 +255,100 @@ def forecast_date(request: ForecastInput):
     if model_forecaster is None:
         raise HTTPException(status_code=500, detail="Forecast model not loaded")
 
-    # Parse date
+    # Parse date from request
     try:
         future_date = datetime(request.year, request.month, request.day)
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid date")
 
     # -------------------------
-    # LOAD DATA (FIXED)
+    # LOAD DATA
     # -------------------------
     df = pd.read_csv("data/processed/city_day_processed.csv")
 
-    # Clean and parse dataset dates
+    # Build proper datetime column from year / month / day
     df["__date__"] = pd.to_datetime(
-        df["day"].astype(str) + "-" + df["month"].astype(str) + "-" + df["year"].astype(str),
+        df["day"].astype(int).astype(str)
+        + "-"
+        + df["month"].astype(int).astype(str)
+        + "-"
+        + df["year"].astype(int).astype(str),
         format="%d-%m-%Y",
-        errors="coerce"
+        errors="coerce",
     )
 
-    df = df.dropna(subset=["__date__"])  # remove invalid rows
+    df = df.dropna(subset=["__date__"])
 
     if df.empty:
         raise HTTPException(status_code=500, detail="No valid dates found in dataset")
 
     last_date = df["__date__"].max()
 
-    # must be future date
+    # Date must be strictly after dataset end
     if future_date <= last_date:
-        raise HTTPException(status_code=400, detail="Date must be after dataset end")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Date must be after dataset end ({last_date.date()})",
+        )
 
-    # days ahead
+    # Days ahead horizon
     days_ahead = (future_date - last_date).days
+
+    if days_ahead < 1:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Computed days_ahead={days_ahead}, must be >= 1",
+        )
 
     if days_ahead > MAX_FUTURE_DAYS:
         raise HTTPException(
             status_code=400,
-            detail=f"Max {MAX_FUTURE_DAYS} future days allowed (you requested {days_ahead})"
+            detail=(
+                f"Max {MAX_FUTURE_DAYS} future days allowed from "
+                f"{last_date.date()} (you requested {days_ahead})"
+            ),
         )
 
     # -------------------------
-    # FORECAST AQI
+    # FORECAST AQI with fallback
     # -------------------------
     try:
         forecast_values = model_forecaster.forecast(steps=days_ahead)
         aqi_value = float(forecast_values[-1])
-        aqi_value = max(0, aqi_value)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # Fallback: naive last observed AQI
+        print(f"[WARN] ARIMA forecast failed in /forecast_date ({e}), using naive last-value forecast.")
+        aqi_value = float(df["AQI"].dropna().iloc[-1])
 
+    aqi_value = max(0.0, aqi_value)
     bucket = aqi_to_bucket(aqi_value)
 
     # -------------------------
-    # Build classification payload
+    # Build classification payload (API schema)
     # -------------------------
     payload = {
-        "PM2_5": 0,
-        "PM10": 0,
-        "NO2": 0,
-        "SO2": 0,
-        "CO": 0,
-        "O3": 0,
+        "PM2_5": 0.0,
+        "PM10": 0.0,
+        "NO2": 0.0,
+        "SO2": 0.0,
+        "CO": 0.0,
+        "O3": 0.0,
         "year": request.year,
         "month": request.month,
         "day": request.day,
         "weekday": future_date.weekday(),
-        "season": request.month % 12 // 3
+        "season": request.month % 12 // 3,
     }
 
     payload.update(city_to_onehot(request.city))
 
     return {
         "input_date": future_date.strftime("%Y-%m-%d"),
+        "dataset_last_date": last_date.strftime("%Y-%m-%d"),
         "days_ahead": days_ahead,
         "forecast_aqi": aqi_value,
         "forecast_bucket": bucket,
-        "classify_ready_payload": payload
+        "classify_ready_payload": payload,
     }
 
 
